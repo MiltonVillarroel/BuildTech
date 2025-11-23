@@ -6,6 +6,8 @@ Versión Unificada con SQLite
 
 import sys
 import os
+import eventlet
+eventlet.monkey_patch()
 
 # Agregar el directorio app al path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -103,4 +105,4 @@ def create_app():
 if __name__ == "__main__":
     app, socketio = create_app()
     port = int(os.environ.get("PORT", 7000))
-    socketio.run(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
