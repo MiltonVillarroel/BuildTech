@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>💸 Gestión de Gastos del Edificio</h2>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#nuevoGastoModal">
+            ➕ Registrar Gasto
+        </button>
+    </div>
+    
+    <!-- Filtros -->
+    <div class="filters-card">
+        <h4>🔍 Filtrar Gastos</h4>
+        <form method="GET" class="filter-form">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>Mes</label>
+                    <select name="mes" class="form-control">
+                        <option value="">Todos</option>
+                        {% for i in range(1, 13) %}
+                        <option value="{{ i }}" {% if mes_filtro == i %}selected{% endif %}>
+                            {{ ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'][i] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label>Año</label>
+                    <select name="anio" class="form-control">
+                        <option value="">Todos</option>
+                        {% for year in range(2020, 2030) %}
+                        <option value="{{ year }}" {% if anio_filtro == year %}selected{% endif %}>
+                            {{ year }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label>Categoría</label>
+                    <select name="categoria" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="mantenimiento" {% if categoria_filtro == 'mantenimiento' %}selected{% endif %}>
+                            Mantenimiento
+                        </option>
+                        <option value="servicios" {% if categoria_filtro == 'servicios' %}selected{% endif %}>
+                            Servicios
+                        </option>
+                        <option value="personal" {% if categoria_filtro == 'personal' %}selected{% endif %}>
+                            Personal
+                        </option>
+                        <option value="limpieza" {% if categoria_filtro == 'limpieza' %}selected{% endif %}>
+                            Limpieza
+                        </option>
+                        <option value="seguridad" {% if categoria_filtro == 'seguridad' %}selected{% endif %}>
+                            Seguridad
+                        </option>
+                        <option value="equipamiento" {% if categoria_filtro == 'equipamiento' %}selected{% endif %}>
+                            Equipamiento
+                        </option>
+                        <option value="otros" {% if categoria_filtro == 'otros' %}selected{% endif %}>
+                            Otros
+                        </option>
+                    </select>
+                </div>
+                
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    <a href="{{ url_for('finanzas.gestionar_gastos') }}" class="btn btn-secondary">
+                        Limpiar
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Resumen de Totales -->
+    <div class="totals-grid">
+        {% for categoria, total in totales_categoria.items() %}
+        <div class="total-card">
+            <div class="total-icon">
+                {% if categoria == 'mantenimiento' %}🔧
+                {% elif categoria == 'servicios' %}⚡
+                {% elif categoria == 'personal' %}👥
+                {% elif categoria == 'limpieza' %}🧹
+                {% elif categoria == 'seguridad' %}🛡️
+                {% elif categoria == 'equipamiento' %}🛠️
+                {% else %}📋
+                {% endif %}
+            </div>
+            <div class="total-content">
+                <div class="total-label">{{ categoria|title }}</div>
+                <div class="total-value">Bs. {{ "%.2f"|format(total) }}</div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="total-card total-general">
+            <div class="total-icon">💰</div>
+            <div class="total-content">
+                <div class="total-label">TOTAL GENERAL</div>
+                <div class="total-value">Bs. {{ "%.2f"|format(total_general) }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Gastos -->
+    <div class="gastos-container">
+        <h4>📊 Listado de Gastos</h4>
+        
+        {% if gastos %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Monto</th>
+                        <th>Registrado por</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for gasto in gastos %}
+                    <tr>
+                        <td>{{ gasto.fecha_gasto.strftime('%d/%m/%Y') }}</td>
+                        <td><strong>{{ gasto.concepto }}</strong></td>
+                        <td>
+                            <small>{{ gasto.descripcion[:50] if gasto.descripcion else 'Sin descripción' }}
+                            {% if gasto.descripcion and gasto.descripcion|length > 50 %}...{% endif %}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ gasto.categoria }}</span>
+                        </td>
+                        <td><strong>Bs. {{ "%.2f"|format(gasto.monto) }}</strong></td>
+                        <td><small>{{ gasto.registrado_por }}</small></td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-info" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#verGastoModal{{ gasto.id }}">
+                                👁️ Ver
+                            </button>
+                            <form method="POST" 
+                                  action="{{ url_for('finanzas.eliminar_gasto', gasto_id=gasto.id) }}" 
+                                  style="display:inline;"
+                                  onsubmit="return confirm('¿Eliminar este gasto?');">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    🗑️
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    
+                    <!-- Modal Ver Detalle -->
+                    <div class="modal fade" id="verGastoModal{{ gasto.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">📋 Detalle del Gasto</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="gasto-detail">
+                                        <div class="detail-row">
+                                            <span class="label">Fecha:</span>
+                                            <span class="value">{{ gasto.fecha_gasto.strftime('%d/%m/%Y') }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">Concepto:</span>
+                                            <span class="value">{{ gasto.concepto }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">Categoría:</span>
+                                            <span class="value">{{ gasto.categoria|title }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">Monto:</span>
+                                            <span class="value"><strong>Bs. {{ "%.2f"|format(gasto.monto) }}</strong></span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">Descripción:</span>
+                                            <span class="value">{{ gasto.descripcion or 'Sin descripción' }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">Registrado por:</span>
+                                            <span class="value">{{ gasto.registrado_por }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="label">Fecha de Registro:</span>
+                                            <span class="value">{{ gasto.fecha_registro.strftime('%d/%m/%Y %H:%M') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-danger">
+                        <td colspan="4"><strong>TOTAL:</strong></td>
+                        <td colspan="3"><strong>Bs. {{ "%.2f"|format(total_general) }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <p class="mb-0">ℹ️ No hay gastos registrados con los filtros seleccionados</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Nuevo Gasto -->
+<div class="modal fade" id="nuevoGastoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">➕ Registrar Nuevo Gasto</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="concepto" class="form-label">Concepto *</label>
+                            <input type="text" id="concepto" name="concepto" class="form-control" 
+                                   placeholder="Ej: Mantenimiento de ascensores" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_gasto" class="form-label">Fecha del Gasto *</label>
+                            <input type="date" id="fecha_gasto" name="fecha_gasto" class="form-control" 
+                                   value="{{ date.today().strftime('%Y-%m-%d') }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="monto" class="form-label">Monto (Bs.) *</label>
+                            <input type="number" step="0.01" id="monto" name="monto" class="form-control" 
+                                   placeholder="0.00" min="0" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="categoria" class="form-label">Categoría *</label>
+                            <select id="categoria" name="categoria" class="form-control" required>
+                                <option value="">Seleccione...</option>
+                                <option value="mantenimiento">🔧 Mantenimiento</option>
+                                <option value="servicios">⚡ Servicios</option>
+                                <option value="personal">👥 Personal</option>
+                                <option value="limpieza">🧹 Limpieza</option>
+                                <option value="seguridad">🛡️ Seguridad</option>
+                                <option value="equipamiento">🛠️ Equipamiento</option>
+                                <option value="otros">📋 Otros</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción Detallada</label>
+                        <textarea id="descripcion" name="descripcion" class="form-control" rows="4" 
+                                  placeholder="Describa los detalles del gasto..."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <small>* Campos obligatorios</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        💾 Guardar Gasto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.filters-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.filters-card h4 {
+    margin-bottom: 1rem;
+}
+
+.filter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.filter-item label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.totals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.total-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.3s;
+}
+
+.total-card:hover {
+    transform: translateY(-5px);
+}
+
+.total-general {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+}
+
+.total-icon {
+    font-size: 2.5rem;
+}
+
+.total-content {
+    flex: 1;
+}
+
+.total-label {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin-bottom: 0.25rem;
+}
+
+.total-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.gastos-container {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.gastos-container h4 {
+    margin-bottom: 1.5rem;
+}
+
+.gasto-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.detail-row .label {
+    font-weight: 600;
+    color: #666;
+}
+
+.detail-row .value {
+    color: #2c3e50;
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+    
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

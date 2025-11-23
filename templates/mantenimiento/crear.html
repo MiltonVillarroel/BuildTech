@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Nuevo Ticket{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>➕ Crear Nuevo Ticket</h2>
+    
+    <form method="POST" class="form-modern">
+        <div class="form-card">
+            <div class="field">
+                <label for="descripcion">
+                    <span class="label-icon">📝</span>
+                    Descripción del Problema
+                </label>
+                <div class="control">
+                    <textarea 
+                        id="descripcion" 
+                        name="descripcion" 
+                        placeholder="Describe detalladamente el problema o mantenimiento requerido..."
+                        required
+                    ></textarea>
+                    <small>Proporciona todos los detalles relevantes</small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="prioridad">
+                    <span class="label-icon">⚡</span>
+                    Nivel de Prioridad
+                </label>
+                <div class="control">
+                    <select id="prioridad" name="prioridad" required>
+                        <option value="" disabled selected>Seleccione la prioridad</option>
+                        <option value="Baja">🟢 Baja - Puede esperar</option>
+                        <option value="Media">🟡 Media - Atención moderada</option>
+                        <option value="Alta">🔴 Alta - Requiere atención urgente</option>
+                    </select>
+                    <small>Selecciona según la urgencia del problema</small>
+                </div>
+            </div>
+
+            <div class="field form-actions">
+                <button type="submit" class="button is-primary">
+                    ✅ Crear Ticket
+                </button>
+                <a href="{{ url_for('mantenimiento.list_mantenimiento') }}" class="button">
+                    ❌ Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-modern {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .label-icon {
+        margin-right: 0.5rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .form-actions .button {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}

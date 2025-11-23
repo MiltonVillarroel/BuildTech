@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>📝 Detalle de Queja #{{ queja.id }}</h2>
+    
+    <div class="queja-detalle">
+        <div class="detalle-card">
+            <div class="detalle-header">
+                <div class="header-badges">
+                    <span class="categoria-badge categoria-{{ queja.categoria }}">
+                        {% if queja.categoria == 'mantenimiento' %}
+                            🔧 Mantenimiento
+                        {% elif queja.categoria == 'seguridad' %}
+                            🛡️ Seguridad
+                        {% elif queja.categoria == 'limpieza' %}
+                            🧹 Limpieza
+                        {% elif queja.categoria == 'vecinos' %}
+                            👥 Vecinos
+                        {% else %}
+                            📌 Otro
+                        {% endif %}
+                    </span>
+                    <span class="estado-badge estado-{{ queja.estado }}">
+                        {% if queja.estado == 'pendiente' %}
+                            ⏳ Pendiente
+                        {% elif queja.estado == 'en_revision' %}
+                            👁️ En Revisión
+                        {% elif queja.estado == 'resuelta' %}
+                            ✅ Resuelta
+                        {% else %}
+                            📁 Archivada
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="detalle-section">
+                <h3>📋 Información General</h3>
+                <table class="detail-table">
+                    <tr>
+                        <td><strong>ID:</strong></td>
+                        <td>#{{ queja.id }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Autor:</strong></td>
+                        <td>
+                            {% if queja.anonima %}
+                                <span class="autor-anonimo">👤 Anónimo</span>
+                            {% else %}
+                                {{ queja.autor }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fecha:</strong></td>
+                        <td>{{ queja.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Estado:</strong></td>
+                        <td>
+                            <span class="estado-badge estado-{{ queja.estado }}">
+                                {% if queja.estado == 'pendiente' %}
+                                    Pendiente
+                                {% elif queja.estado == 'en_revision' %}
+                                    En Revisión
+                                {% elif queja.estado == 'resuelta' %}
+                                    Resuelta
+                                {% else %}
+                                    Archivada
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="detalle-section">
+                <h3>📄 Contenido de la Queja</h3>
+                <div class="contenido-box">
+                    <p>{{ queja.contenido }}</p>
+                </div>
+            </div>
+            
+            {% if queja.respuesta %}
+            <div class="detalle-section">
+                <h3>💬 Respuesta del Administrador</h3>
+                <div class="respuesta-box">
+                    <p>{{ queja.respuesta }}</p>
+                    <div class="respuesta-info">
+                        <small>📅 Respondido el: {{ queja.fecha_respuesta.strftime('%d/%m/%Y %H:%M') if queja.fecha_respuesta else 'N/A' }}</small>
+                        <small>👤 Por: {{ queja.respondida_por }}</small>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="detalle-section">
+                <div class="sin-respuesta">
+                    <span class="icon">⏳</span>
+                    <p>Esta queja aún no ha sido respondida. Un administrador la revisará pronto.</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="detalle-actions">
+                <a href="{{ url_for('comunicacion.quejas') }}" class="btn btn-info">
+                    ← Volver a Quejas
+                </a>
+                
+                {% if current_user.has_role('admin') and not queja.respuesta %}
+                <a href="{{ url_for('comunicacion.responder_queja', queja_id=queja.id) }}" class="btn btn-success">
+                    💬 Responder
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .queja-detalle {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .detalle-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .detalle-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .header-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .categoria-badge, .estado-badge {
+        padding: 0.4rem 0.9rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .categoria-mantenimiento {
+        background: #e3f2fd;
+        color: #1976D2;
+    }
+
+    .categoria-seguridad {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .categoria-limpieza {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .categoria-vecinos {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .categoria-otro {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .estado-pendiente {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .estado-en_revision {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .estado-resuelta {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .estado-archivada {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
+    .detalle-section {
+        padding: 2rem;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .detalle-section:last-of-type {
+        border-bottom: none;
+    }
+
+    .detalle-section h3 {
+        color: var(--dark);
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .detail-table {
+        width: 100%;
+    }
+
+    .detail-table td {
+        padding: 0.75rem 0;
+    }
+
+    .detail-table td:first-child {
+        font-weight: 600;
+        width: 150px;
+        color: var(--dark);
+    }
+
+    .autor-anonimo {
+        color: #999;
+        font-style: italic;
+    }
+
+    .contenido-box {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #6c757d;
+    }
+
+    .contenido-box p {
+        margin: 0;
+        color: #333;
+        line-height: 1.7;
+        white-space: pre-wrap;
+    }
+
+    .respuesta-box {
+        background: #f0f8ff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        border-left: 4px solid #2196F3;
+    }
+
+    .respuesta-box p {
+        margin: 0 0 1rem 0;
+        color: #333;
+        line-height: 1.7;
+        white-space: pre-wrap;
+    }
+
+    .respuesta-info {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .respuesta-info small {
+        color: #666;
+    }
+
+    .sin-respuesta {
+        text-align: center;
+        padding: 2rem;
+        background: #fff3cd;
+        border-radius: 8px;
+        border-left: 4px solid #ffc107;
+    }
+
+    .sin-respuesta .icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .sin-respuesta p {
+        margin: 0;
+        color: #856404;
+    }
+
+    .detalle-actions {
+        padding: 1.5rem 2rem;
+        background: #f8f9fa;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        .detalle-section {
+            padding: 1.5rem;
+        }
+
+        .detalle-actions {
+            flex-direction: column;
+        }
+
+        .detalle-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

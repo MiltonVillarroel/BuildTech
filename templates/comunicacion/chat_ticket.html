@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>💬 Chat - Ticket #{{ ticket.id_mantenimiento }}</h2>
+    
+    <div class="ticket-info-mini">
+        <strong>Descripción:</strong> {{ ticket.descripcion }}<br>
+        <strong>Responsable:</strong> {{ ticket.responsable or 'Sin asignar' }}<br>
+        <strong>Estado:</strong> 
+        {% if ticket.trabajo_realizado %}
+            <span class="status status-completed">Completado</span>
+        {% elif ticket.fecha_ini %}
+            <span class="status status-in-progress">En progreso</span>
+        {% else %}
+            <span class="status status-pending">Pendiente</span>
+        {% endif %}
+    </div>
+    
+    <div class="chat-container">
+        <div class="chat-messages" id="messages"></div>
+        
+        <form id="chat-form" class="chat-form">
+            <input 
+                type="text" 
+                id="message-input" 
+                placeholder="Escribe un mensaje..." 
+                autocomplete="off"
+                required
+            >
+            <button type="submit" class="btn btn-primary">Enviar</button>
+        </form>
+    </div>
+    
+    <div class="chat-actions">
+        <a href="{{ url_for('mantenimiento.list_mantenimiento') }}" class="btn">Volver a tickets</a>
+        <a href="{{ url_for('mantenimiento.generate_ticket', id=ticket.id_mantenimiento) }}" class="btn btn-info">Ver Detalles</a>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    const ticketId = {{ ticket.id_mantenimiento }};
+    const username = "{{ current_username }}"; 
+    const socket = io();
+    
+    const messagesContainer = document.getElementById('messages');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+
+    socket.on('connect', () => {
+        console.log('Conectado al servidor como:', username);
+        socket.emit('join_ticket_chat', { ticket_id: ticketId });
+    });
+
+    window.addEventListener('beforeunload', () => {
+        socket.emit('leave_ticket_chat', { ticket_id: ticketId });
+    });
+
+    socket.on('load_messages', (messages) => {
+        messagesContainer.innerHTML = '';
+        messages.forEach(msg => {
+            addMessage(msg);
+        });
+        scrollToBottom();
+    });
+
+    socket.on('new_message', (message) => {
+        addMessage(message);
+        scrollToBottom();
+    });
+
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const message = messageInput.value.trim();
+        if (message) {
+            socket.emit('send_ticket_message', {
+                message: message,
+                username: username,
+                ticket_id: ticketId
+            });
+            messageInput.value = '';
+        }
+    });
+
+    function addMessage(msg) {
+        const isOwnMessage = msg.username === username;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${isOwnMessage ? 'own-message' : ''}`;
+        
+        messageDiv.innerHTML = `
+            <div class="message-header">
+                <strong>${escapeHtml(msg.username)}</strong>
+                <small>${formatTime(msg.timestamp)}</small>
+            </div>
+            <div class="message-content">${escapeHtml(msg.content)}</div>
+        `;
+        
+        messagesContainer.appendChild(messageDiv);
+    }
+
+    function scrollToBottom() {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+</script>
+
+<style>
+    .ticket-info-mini {
+        background: #e8f4f8;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #17a2b8;
+    }
+
+    .chat-container {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1rem;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f8f9fa;
+    }
+
+    .chat-message {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        max-width: 80%;
+    }
+
+    .chat-message.own-message {
+        background: #e3f2fd;
+        margin-left: auto;
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    .message-header strong {
+        color: #2c3e50;
+    }
+
+    .message-header small {
+        color: #666;
+    }
+
+    .message-content {
+        color: #333;
+        word-wrap: break-word;
+    }
+
+    .chat-form {
+        display: flex;
+        padding: 1rem;
+        background: white;
+        border-top: 1px solid #ddd;
+        gap: 0.5rem;
+    }
+
+    .chat-form input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        font-size: 1rem;
+    }
+
+    .chat-form input:focus {
+        outline: none;
+        border-color: #3498db;
+    }
+
+    .chat-form button {
+        padding: 0.75rem 1.5rem;
+        border-radius: 20px;
+    }
+
+    .chat-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+</style>
+{% endblock %}

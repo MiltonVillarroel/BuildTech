@@ -1,0 +1,160 @@
+<!-- app/templates/reservas/editar_reserva.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4>✏️ Editar Reserva #{{ reserva.id }}</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Información Actual -->
+                    <div class="alert alert-info mb-4">
+                        <h5>📋 Información Actual</h5>
+                        <p><strong>Área:</strong> {{ reserva.area.nombre }}</p>
+                        <p><strong>Fecha:</strong> {{ reserva.fecha.strftime('%d/%m/%Y') }}</p>
+                        <p><strong>Horario:</strong> {{ reserva.hora_inicio.strftime('%H:%M') }} - {{ reserva.hora_fin.strftime('%H:%M') }}</p>
+                        <p><strong>Personas:</strong> {{ reserva.num_personas }}</p>
+                        <p><strong>Costo:</strong> Bs. {{ "%.2f"|format(reserva.costo_total) }}</p>
+                        <p class="mb-0">
+                            <strong>Estado:</strong> 
+                            <span class="badge bg-{% if reserva.estado == 'confirmada' %}success{% elif reserva.estado == 'pendiente' %}warning{% else %}secondary{% endif %}">
+                                {{ reserva.estado|upper }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    <!-- Formulario de Edición -->
+                    <form method="POST">
+                        <input type="hidden" name="accion" value="actualizar">
+                        
+                        <div class="mb-3">
+                            <label for="fecha">📅 Nueva Fecha</label>
+                            <input type="date" name="fecha" id="fecha" class="form-control" 
+                                   value="{{ reserva.fecha.strftime('%Y-%m-%d') }}" 
+                                   min="{{ fecha_minima }}" required>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="hora_inicio">🕐 Hora Inicio</label>
+                                <input type="time" name="hora_inicio" id="hora_inicio" class="form-control" 
+                                       value="{{ reserva.hora_inicio.strftime('%H:%M') }}" 
+                                       min="{{ reserva.area.hora_apertura.strftime('%H:%M') }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="hora_fin">🕐 Hora Fin</label>
+                                <input type="time" name="hora_fin" id="hora_fin" class="form-control" 
+                                       value="{{ reserva.hora_fin.strftime('%H:%M') }}"
+                                       max="{{ reserva.area.hora_cierre.strftime('%H:%M') }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="num_personas">👥 Número de Personas</label>
+                            <input type="number" name="num_personas" id="num_personas" class="form-control" 
+                                   value="{{ reserva.num_personas }}" min="1" 
+                                   max="{{ reserva.area.capacidad }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="motivo">📝 Motivo</label>
+                            <textarea name="motivo" id="motivo" class="form-control" rows="3">{{ reserva.motivo }}</textarea>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">✅ Guardar Cambios</button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Acciones Administrativas -->
+                    {% if current_user.has_role('admin') %}
+                    <div class="admin-actions">
+                        <h5>🔧 Acciones Administrativas</h5>
+                        
+                        <div class="row g-2">
+                            {% if reserva.estado == 'pendiente' %}
+                            <div class="col-md-6">
+                                <form method="POST">
+                                    <input type="hidden" name="accion" value="confirmar">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        ✓ Confirmar Reserva
+                                    </button>
+                                </form>
+                            </div>
+                            {% endif %}
+                            
+                            {% if reserva.estado != 'cancelada' %}
+                            <div class="col-md-6">
+                                <button type="button" class="btn btn-danger w-100" 
+                                        data-bs-toggle="modal" data-bs-target="#cancelarModal">
+                                    ✕ Cancelar Reserva
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4 text-center">
+                        <a href="{% if current_user.has_role('admin') %}{{ url_for('reservas.reservas_admin') }}{% else %}{{ url_for('reservas.reservas') }}{% endif %}" 
+                           class="btn btn-secondary">
+                            ← Volver
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Cancelar -->
+<div class="modal fade" id="cancelarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Cancelar Reserva</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="accion" value="cancelar">
+                    <p>¿Estás seguro de que deseas cancelar esta reserva?</p>
+                    
+                    <div class="mb-3">
+                        <label for="motivo_cancelacion">Motivo de Cancelación</label>
+                        <textarea name="motivo" id="motivo_cancelacion" class="form-control" 
+                                  rows="3" placeholder="Opcional"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        No, mantener reserva
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        Sí, cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Fecha mínima (hoy)
+document.getElementById('fecha').min = new Date().toISOString().split('T')[0];
+</script>
+
+<style>
+.admin-actions {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+</style>
+{% endblock %}

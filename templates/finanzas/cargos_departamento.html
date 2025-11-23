@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>💳 Cargos del Departamento {{ departamento }}</h2>
+    
+    <div class="summary-box">
+        <div class="stat-card">
+            <h4>Total Pendiente</h4>
+            <h2>Bs. {{ "%.2f"|format(total_general_pendiente) }}</h2>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📅 Cargo del Mes Actual</h5>
+                </div>
+                <div class="card-body">
+                    {% if cargo_mes_actual %}
+                    <table class="table">
+                        <tr>
+                            <td><strong>Luz:</strong></td>
+                            <td>Bs. {{ "%.2f"|format(cargo_mes_actual.luz) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Agua:</strong></td>
+                            <td>Bs. {{ "%.2f"|format(cargo_mes_actual.agua) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gas:</strong></td>
+                            <td>Bs. {{ "%.2f"|format(cargo_mes_actual.gas) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mantenimiento:</strong></td>
+                            <td>Bs. {{ "%.2f"|format(cargo_mes_actual.mantenimiento) }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Expensas:</strong></td>
+                            <td>Bs. {{ "%.2f"|format(cargo_mes_actual.expensas_comunes) }}</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td><strong>TOTAL:</strong></td>
+                            <td><strong>Bs. {{ "%.2f"|format(cargo_mes_actual.total) }}</strong></td>
+                        </tr>
+                    </table>
+                    
+                    {% if not cargo_mes_actual.pagado %}
+                    <a href="{{ url_for('finanzas.pagar_cargo_pendiente', departamento_id=departamento, tipo_cargo='cargo_mensual', objeto_id=cargo_mes_actual.id) }}" 
+                       class="btn btn-success w-100">Pagar Ahora</a>
+                    {% else %}
+                    <span class="badge bg-success w-100 p-2">✓ PAGADO</span>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>⏳ Cargos Pendientes</h5>
+                </div>
+                <div class="card-body">
+                    {% if cargos_pendientes %}
+                    {% for cargo in cargos_pendientes %}
+                    <div class="cargo-item">
+                        <strong>{{ cargo.mes_nombre }} {{ cargo.anio }}</strong>
+                        <span class="float-end">Bs. {{ "%.2f"|format(cargo.total) }}</span>
+                        <br>
+                        <a href="{{ url_for('finanzas.pagar_cargo_pendiente', departamento_id=departamento, tipo_cargo='cargo_mensual', objeto_id=cargo.id) }}" 
+                           class="btn btn-sm btn-primary mt-1">Pagar</a>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted">No hay cargos pendientes</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.summary-box {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+}
+
+.cargo-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+</style>
+{% endblock %}

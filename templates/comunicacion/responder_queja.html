@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>💬 Responder Queja #{{ queja.id }}</h2>
+    
+    <div class="queja-context">
+        <h3>📋 Queja Original</h3>
+        <div class="context-info">
+            <p><strong>Autor:</strong> 
+                {% if queja.anonima %}
+                    <span class="autor-anonimo">👤 Anónimo</span>
+                {% else %}
+                    {{ queja.autor }}
+                {% endif %}
+            </p>
+            <p><strong>Categoría:</strong> 
+                <span class="categoria-badge categoria-{{ queja.categoria }}">
+                    {% if queja.categoria == 'mantenimiento' %}
+                        🔧 Mantenimiento
+                    {% elif queja.categoria == 'seguridad' %}
+                        🛡️ Seguridad
+                    {% elif queja.categoria == 'limpieza' %}
+                        🧹 Limpieza
+                    {% elif queja.categoria == 'vecinos' %}
+                        👥 Vecinos
+                    {% else %}
+                        📌 Otro
+                    {% endif %}
+                </span>
+            </p>
+            <p><strong>Fecha:</strong> {{ queja.timestamp.strftime('%d/%m/%Y %H:%M') }}</p>
+        </div>
+        <div class="queja-contenido-original">
+            <p>{{ queja.contenido }}</p>
+        </div>
+    </div>
+    
+    <form method="POST" class="form-modern">
+        <div class="form-card">
+            <div class="field">
+                <label for="respuesta">
+                    <span class="label-icon">💬</span>
+                    Tu Respuesta
+                </label>
+                <div class="control">
+                    <textarea 
+                        id="respuesta" 
+                        name="respuesta" 
+                        placeholder="Escribe aquí tu respuesta a la queja..."
+                        required
+                        rows="8"
+                    ></textarea>
+                    <small>Proporciona una respuesta clara y completa. Explica las acciones tomadas o a tomar.</small>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ Consejos para una buena respuesta:</strong>
+                <ul>
+                    <li>Sé empático y profesional</li>
+                    <li>Explica claramente qué acciones se tomarán</li>
+                    <li>Si el problema ya fue resuelto, indícalo</li>
+                    <li>Si necesita más tiempo, establece expectativas claras</li>
+                    <li>Agradece por reportar el problema</li>
+                </ul>
+            </div>
+
+            <div class="field form-actions">
+                <button type="submit" class="button is-primary">
+                    ✅ Enviar Respuesta
+                </button>
+                <a href="{{ url_for('comunicacion.ver_queja', queja_id=queja.id) }}" class="button">
+                    ❌ Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .queja-context {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        margin-bottom: 2rem;
+        border-left: 4px solid #6c757d;
+    }
+
+    .queja-context h3 {
+        color: var(--dark);
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+    }
+
+    .context-info {
+        margin-bottom: 1rem;
+    }
+
+    .context-info p {
+        margin: 0.5rem 0;
+        color: #555;
+    }
+
+    .autor-anonimo {
+        color: #999;
+        font-style: italic;
+    }
+
+    .categoria-badge {
+        padding: 0.3rem 0.7rem;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .categoria-mantenimiento {
+        background: #e3f2fd;
+        color: #1976D2;
+    }
+
+    .categoria-seguridad {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .categoria-limpieza {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .categoria-vecinos {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .categoria-otro {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .queja-contenido-original {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+    }
+
+    .queja-contenido-original p {
+        margin: 0;
+        color: #333;
+        line-height: 1.7;
+        white-space: pre-wrap;
+    }
+
+    .form-modern {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .label-icon {
+        margin-right: 0.5rem;
+    }
+
+    .info-box {
+        background: #f0f8ff;
+        border-left: 4px solid #2196F3;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+
+    .info-box strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #1976D2;
+    }
+
+    .info-box ul {
+        margin: 0.5rem 0 0 1.5rem;
+        color: #555;
+    }
+
+    .info-box li {
+        margin-bottom: 0.3rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .form-actions .button {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .queja-context {
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,348 @@
+<!-- app/templates/reservas/calificar.html - Sistema de Calificaciones -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-mobile">
+    <div class="rating-header">
+        <h2>⭐ Calificar Experiencia</h2>
+        <p>Ayúdanos a mejorar nuestras instalaciones</p>
+    </div>
+    
+    <div class="reserva-summary">
+        <div class="summary-icon">
+            {% if 'Salón' in reserva.area.nombre %}🎉
+            {% elif 'Piscina' in reserva.area.nombre %}🏊
+            {% elif 'Parrilla' in reserva.area.nombre %}🔥
+            {% elif 'Cancha' in reserva.area.nombre %}⚽
+            {% else %}📍{% endif %}
+        </div>
+        <div class="summary-info">
+            <h3>{{ reserva.area.nombre }}</h3>
+            <p>{{ reserva.fecha.strftime('%d/%m/%Y') }} • {{ reserva.hora_inicio.strftime('%H:%M') }} - {{ reserva.hora_fin.strftime('%H:%M') }}</p>
+        </div>
+    </div>
+    
+    <form method="POST" class="rating-form">
+        <!-- Calificación General -->
+        <div class="rating-section">
+            <label class="rating-label">
+                ⭐ Calificación General
+                <span class="required">*</span>
+            </label>
+            <div class="star-rating">
+                <input type="radio" name="rating" value="5" id="star5" required>
+                <label for="star5">★</label>
+                <input type="radio" name="rating" value="4" id="star4">
+                <label for="star4">★</label>
+                <input type="radio" name="rating" value="3" id="star3">
+                <label for="star3">★</label>
+                <input type="radio" name="rating" value="2" id="star2">
+                <label for="star2">★</label>
+                <input type="radio" name="rating" value="1" id="star1">
+                <label for="star1">★</label>
+            </div>
+            <div class="rating-text" id="ratingText">Selecciona una calificación</div>
+        </div>
+        
+        <!-- Aspectos Específicos -->
+        <div class="rating-section">
+            <label class="rating-label">🧹 Limpieza</label>
+            <div class="emoji-rating">
+                <input type="radio" name="limpieza" value="5" id="limp5">
+                <label for="limp5" title="Excelente">😍</label>
+                <input type="radio" name="limpieza" value="4" id="limp4">
+                <label for="limp4" title="Bueno">😊</label>
+                <input type="radio" name="limpieza" value="3" id="limp3" checked>
+                <label for="limp3" title="Regular">😐</label>
+                <input type="radio" name="limpieza" value="2" id="limp2">
+                <label for="limp2" title="Malo">😕</label>
+                <input type="radio" name="limpieza" value="1" id="limp1">
+                <label for="limp1" title="Muy Malo">😞</label>
+            </div>
+        </div>
+        
+        <div class="rating-section">
+            <label class="rating-label">🛠️ Equipamiento</label>
+            <div class="emoji-rating">
+                <input type="radio" name="equipamiento" value="5" id="equip5">
+                <label for="equip5" title="Excelente">😍</label>
+                <input type="radio" name="equipamiento" value="4" id="equip4">
+                <label for="equip4" title="Bueno">😊</label>
+                <input type="radio" name="equipamiento" value="3" id="equip3" checked>
+                <label for="equip3" title="Regular">😐</label>
+                <input type="radio" name="equipamiento" value="2" id="equip2">
+                <label for="equip2" title="Malo">😕</label>
+                <input type="radio" name="equipamiento" value="1" id="equip1">
+                <label for="equip1" title="Muy Malo">😞</label>
+            </div>
+        </div>
+        
+        <div class="rating-section">
+            <label class="rating-label">📍 Ubicación</label>
+            <div class="emoji-rating">
+                <input type="radio" name="ubicacion" value="5" id="ubic5">
+                <label for="ubic5" title="Excelente">😍</label>
+                <input type="radio" name="ubicacion" value="4" id="ubic4">
+                <label for="ubic4" title="Bueno">😊</label>
+                <input type="radio" name="ubicacion" value="3" id="ubic3" checked>
+                <label for="ubic3" title="Regular">😐</label>
+                <input type="radio" name="ubicacion" value="2" id="ubic2">
+                <label for="ubic2" title="Malo">😕</label>
+                <input type="radio" name="ubicacion" value="1" id="ubic1">
+                <label for="ubic1" title="Muy Malo">😞</label>
+            </div>
+        </div>
+        
+        <!-- Comentarios -->
+        <div class="rating-section">
+            <label class="rating-label">💬 Comentarios (Opcional)</label>
+            <textarea name="comentario" class="comment-textarea" rows="4" 
+                      placeholder="Cuéntanos sobre tu experiencia. ¿Qué te gustó? ¿Qué podemos mejorar?"></textarea>
+        </div>
+        
+        <!-- Botones -->
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">
+                ✅ Enviar Calificación
+            </button>
+            <a href="{{ url_for('reservas.reservas') }}" class="btn-cancel">
+                Ahora no
+            </a>
+        </div>
+    </form>
+</div>
+
+<script>
+// Actualizar texto de calificación
+document.querySelectorAll('input[name="rating"]').forEach(input => {
+    input.addEventListener('change', (e) => {
+        const value = e.target.value;
+        const textElement = document.getElementById('ratingText');
+        const texts = {
+            '5': '⭐⭐⭐⭐⭐ ¡Excelente!',
+            '4': '⭐⭐⭐⭐ Muy bueno',
+            '3': '⭐⭐⭐ Bueno',
+            '2': '⭐⭐ Regular',
+            '1': '⭐ Malo'
+        };
+        textElement.textContent = texts[value];
+        textElement.className = 'rating-text selected';
+    });
+});
+</script>
+
+<style>
+.container-mobile {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+.rating-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.rating-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+}
+
+.rating-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.reserva-summary {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: white;
+    padding: 1.5rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.summary-icon {
+    font-size: 3rem;
+}
+
+.summary-info h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    color: #2c3e50;
+}
+
+.summary-info p {
+    margin: 0;
+    color: #666;
+}
+
+.rating-form {
+    padding: 1.5rem;
+}
+
+.rating-section {
+    margin-bottom: 2rem;
+}
+
+.rating-label {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.required {
+    color: #e74c3c;
+}
+
+/* Estrellas */
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 3rem;
+    color: #ddd;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: #ffd700;
+    transform: scale(1.1);
+}
+
+.rating-text {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #666;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    transition: all 0.3s;
+}
+
+.rating-text.selected {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    font-weight: bold;
+}
+
+/* Emojis */
+.emoji-rating {
+    display: flex;
+    justify-content: space-around;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.emoji-rating input {
+    display: none;
+}
+
+.emoji-rating label {
+    font-size: 2.5rem;
+    cursor: pointer;
+    opacity: 0.4;
+    transition: all 0.3s;
+    filter: grayscale(100%);
+}
+
+.emoji-rating label:hover {
+    opacity: 0.7;
+    transform: scale(1.2);
+    filter: grayscale(0%);
+}
+
+.emoji-rating input:checked + label {
+    opacity: 1;
+    transform: scale(1.3);
+    filter: grayscale(0%);
+}
+
+/* Comentarios */
+.comment-textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+.comment-textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Botones */
+.form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+    transition: all 0.3s;
+}
+
+.btn-submit:active {
+    transform: scale(0.98);
+}
+
+.btn-cancel {
+    width: 100%;
+    padding: 1rem;
+    background: #f8f9fa;
+    color: #666;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+}
+
+@media (min-width: 768px) {
+    .form-actions {
+        flex-direction: row;
+    }
+    
+    .btn-cancel {
+        max-width: 200px;
+    }
+}
+</style>
+{% endblock %}

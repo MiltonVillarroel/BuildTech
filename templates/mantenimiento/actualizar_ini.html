@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Iniciar Mantenimiento</h2>
+    
+    <div class="ticket-info-card">
+        <h3>Información del Ticket</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">ID:</span>
+                <span class="info-value">#{{ ticket.id_mantenimiento }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Descripción:</span>
+                <span class="info-value">{{ ticket.descripcion }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Prioridad:</span>
+                <span class="priority priority-{{ ticket.prioridad|lower }}">{{ ticket.prioridad }}</span>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" class="form-modern">
+        <div class="form-card">
+            <h3>👤 Asignación y Planificación</h3>
+            
+            <div class="field">
+                <label for="responsable">
+                    <span class="label-icon">👷</span>
+                    Responsable del Mantenimiento
+                </label>
+                <div class="control">
+                    <input 
+                        type="text" 
+                        id="responsable" 
+                        name="responsable" 
+                        value="{{ ticket.responsable or '' }}"
+                        placeholder="Nombre del responsable"
+                        required
+                    >
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="field">
+                    <label for="fecha_ini">
+                        <span class="label-icon">📅</span>
+                        Fecha de Inicio
+                    </label>
+                    <div class="control">
+                        <input 
+                            type="date" 
+                            id="fecha_ini" 
+                            name="fecha_ini" 
+                            value="{{ ticket.fecha_ini or '' }}"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="fecha_fin">
+                        <span class="label-icon">🏁</span>
+                        Fecha de Fin Estimada
+                    </label>
+                    <div class="control">
+                        <input 
+                            type="date" 
+                            id="fecha_fin" 
+                            name="fecha_fin" 
+                            value="{{ ticket.fecha_fin or '' }}"
+                            required
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="costo">
+                    <span class="label-icon">💰</span>
+                    Costo Estimado (Bs.)
+                </label>
+                <div class="control">
+                    <input 
+                        type="number" 
+                        step="0.01" 
+                        id="costo" 
+                        name="costo" 
+                        value="{{ ticket.costo or '' }}"
+                        placeholder="0.00"
+                        min="0"
+                        required
+                    >
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="prioridad">
+                    <span class="label-icon">⚡</span>
+                    Actualizar Prioridad
+                </label>
+                <div class="control">
+                    <select id="prioridad" name="prioridad" required>
+                        <option value="Baja" {% if ticket.prioridad == 'Baja' %}selected{% endif %}>Baja</option>
+                        <option value="Media" {% if ticket.prioridad == 'Media' %}selected{% endif %}>Media</option>
+                        <option value="Alta" {% if ticket.prioridad == 'Alta' %}selected{% endif %}>Alta</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="field form-actions">
+                <button type="submit" class="button is-primary">
+                    Iniciar Mantenimiento
+                </button>
+                <a href="{{ url_for('mantenimiento.list_mantenimiento') }}" class="button">
+                    Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .ticket-info-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        padding: 1.5rem;
+        border-radius: var(--radius);
+        margin-bottom: 2rem;
+        border-left: 4px solid var(--primary);
+    }
+
+    .ticket-info-card h3 {
+        margin-bottom: 1rem;
+        color: var(--dark);
+    }
+
+    .info-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .info-value {
+        color: #555;
+    }
+
+    .form-modern {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .form-card h3 {
+        margin-bottom: 1.5rem;
+        color: var(--dark);
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--primary);
+    }
+
+    .label-icon {
+        margin-right: 0.5rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .form-actions .button {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}

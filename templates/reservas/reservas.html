@@ -1,0 +1,885 @@
+<!-- app/templates/reservas/reservas.html - VERSIÓN MÓVIL MEJORADA -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-mobile">
+    <div class="mobile-header">
+        <h2>📅 Reservar Área</h2>
+        <p class="subtitle">Selecciona y reserva fácilmente</p>
+    </div>
+    
+    <!-- Tabs de Navegación -->
+    <div class="tabs-nav">
+        <button class="tab-btn active" onclick="showTab('nueva')">
+            ➕ Nueva Reserva
+        </button>
+        <button class="tab-btn" onclick="showTab('mis-reservas')">
+            📋 Mis Reservas
+        </button>
+    </div>
+    
+    <!-- TAB: Nueva Reserva -->
+    <div id="tab-nueva" class="tab-content active">
+        <!-- Selección de Área con Cards -->
+        <div class="section-title">
+            <h3>🏢 Selecciona un Área</h3>
+        </div>
+        
+        <div class="areas-grid">
+            {% for area in areas %}
+            <div class="area-card" onclick="selectArea({{ area.id }}, '{{ area.nombre }}', {{ area.costo_hora }}, {{ area.capacidad }}, '{{ area.hora_apertura.strftime('%H:%M') }}', '{{ area.hora_cierre.strftime('%H:%M') }}', '{{ area.descripcion }}')">
+                <div class="area-icon">
+                    {% if 'Salón' in area.nombre %}🎉
+                    {% elif 'Piscina' in area.nombre %}🏊
+                    {% elif 'Parrilla' in area.nombre %}🔥
+                    {% elif 'Cancha' in area.nombre %}⚽
+                    {% else %}📍{% endif %}
+                </div>
+                <div class="area-info">
+                    <h4>{{ area.nombre }}</h4>
+                    <p class="area-desc">{{ area.descripcion[:50] }}...</p>
+                    <div class="area-details">
+                        <span class="detail-badge">👥 {{ area.capacidad }}</span>
+                        <span class="detail-badge price">💰 Bs. {{ "%.0f"|format(area.costo_hora) }}/h</span>
+                    </div>
+                </div>
+                <div class="area-check">
+                    <span class="check-icon">✓</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Formulario de Reserva -->
+        <form method="POST" id="reservaForm" class="reserva-form" style="display: none;">
+            <input type="hidden" name="area_id" id="area_id">
+            
+            <!-- Información del Área Seleccionada -->
+            <div class="selected-area-info">
+                <div class="info-header">
+                    <h4 id="area-selected-name">Área Seleccionada</h4>
+                    <button type="button" class="btn-change-area" onclick="changeArea()">
+                        Cambiar
+                    </button>
+                </div>
+                <div class="info-details">
+                    <p id="area-selected-desc"></p>
+                    <div class="info-badges">
+                        <span class="badge">👥 <span id="area-selected-capacity"></span> personas</span>
+                        <span class="badge">🕐 <span id="area-selected-hours"></span></span>
+                        <span class="badge price">💰 Bs. <span id="area-selected-price"></span>/hora</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selector de Fecha con Calendario Visual -->
+            <div class="form-group">
+                <label>📅 Fecha de Reserva</label>
+                <input type="date" name="fecha" id="fecha" class="form-control mobile-date" required 
+                       min="{{ fecha_minima }}" onchange="checkAvailability()">
+                <div id="availability-message" class="availability-msg"></div>
+            </div>
+            
+            <!-- Selector de Horario con Botones -->
+            <div class="form-group">
+                <label>🕐 Horario</label>
+                <div class="time-selector">
+                    <div class="time-input-group">
+                        <label for="hora_inicio" class="time-label">Inicio</label>
+                        <input type="time" name="hora_inicio" id="hora_inicio" class="form-control mobile-time" 
+                               required onchange="calculateCost()">
+                    </div>
+                    <div class="time-separator">→</div>
+                    <div class="time-input-group">
+                        <label for="hora_fin" class="time-label">Fin</label>
+                        <input type="time" name="hora_fin" id="hora_fin" class="form-control mobile-time" 
+                               required onchange="calculateCost()">
+                    </div>
+                </div>
+                <div id="time-error" class="error-msg"></div>
+            </div>
+            
+            <!-- Costo Estimado Destacado -->
+            <div id="costoDisplay" class="costo-display" style="display: none;">
+                <div class="costo-label">💰 Costo Total</div>
+                <div class="costo-value">Bs. <span id="costoTotal">0.00</span></div>
+                <div class="costo-detail">
+                    <span id="duration">0</span> horas × Bs. <span id="rate">0</span>/hora
+                </div>
+            </div>
+            
+            <!-- Número de Personas con Stepper -->
+            <div class="form-group">
+                <label>👥 Número de Personas</label>
+                <div class="stepper">
+                    <button type="button" class="stepper-btn" onclick="changePersonas(-1)">−</button>
+                    <input type="number" name="num_personas" id="num_personas" class="stepper-input" 
+                           value="1" min="1" readonly>
+                    <button type="button" class="stepper-btn" onclick="changePersonas(1)">+</button>
+                </div>
+            </div>
+            
+            <!-- Motivo con Textarea Expandible -->
+            <div class="form-group">
+                <label>📝 Motivo de la Reserva</label>
+                <textarea name="motivo" id="motivo" class="form-control mobile-textarea" rows="3" 
+                          placeholder="Ej: Cumpleaños, Reunión familiar, etc."></textarea>
+            </div>
+            
+            <!-- Botón de Confirmar Grande y Llamativo -->
+            <button type="submit" class="btn-confirm-mobile">
+                <span class="btn-icon">✅</span>
+                <span class="btn-text">Confirmar Reserva</span>
+            </button>
+        </form>
+    </div>
+    
+    <!-- TAB: Mis Reservas -->
+    <div id="tab-mis-reservas" class="tab-content">
+        {% if mis_reservas %}
+            <div class="reservas-list">
+                {% for reserva in mis_reservas %}
+                <div class="reserva-card {% if reserva.estado == 'confirmada' %}confirmed{% elif reserva.estado == 'pendiente' %}pending{% else %}cancelled{% endif %}">
+                    <div class="reserva-header">
+                        <div class="reserva-icon">
+                            {% if 'Salón' in reserva.area.nombre %}🎉
+                            {% elif 'Piscina' in reserva.area.nombre %}🏊
+                            {% elif 'Parrilla' in reserva.area.nombre %}🔥
+                            {% elif 'Cancha' in reserva.area.nombre %}⚽
+                            {% else %}📍{% endif %}
+                        </div>
+                        <div class="reserva-title">
+                            <h4>{{ reserva.area.nombre }}</h4>
+                            <span class="status-badge status-{{ reserva.estado }}">
+                                {{ reserva.estado|upper }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="reserva-details">
+                        <div class="detail-row">
+                            <span class="detail-icon">📅</span>
+                            <span class="detail-text">{{ reserva.fecha.strftime('%d/%m/%Y') }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-icon">🕐</span>
+                            <span class="detail-text">{{ reserva.hora_inicio.strftime('%H:%M') }} - {{ reserva.hora_fin.strftime('%H:%M') }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-icon">👥</span>
+                            <span class="detail-text">{{ reserva.num_personas }} personas</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-icon">💰</span>
+                            <span class="detail-text">Bs. {{ "%.2f"|format(reserva.costo_total) }}</span>
+                        </div>
+                        {% if reserva.motivo %}
+                        <div class="detail-row">
+                            <span class="detail-icon">📝</span>
+                            <span class="detail-text">{{ reserva.motivo }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="reserva-actions">
+                        <a href="{{ url_for('reservas.editar_reserva', reserva_id=reserva.id) }}" 
+                           class="btn-action btn-edit">
+                            ✏️ Editar
+                        </a>
+                        <form method="POST" action="{{ url_for('reservas.eliminar_reserva', reserva_id=reserva.id) }}" 
+                              style="display:inline;" onsubmit="return confirm('¿Cancelar esta reserva?');">
+                            <button type="submit" class="btn-action btn-cancel">
+                                ✕ Cancelar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <h3>Sin Reservas</h3>
+                <p>No tienes reservas próximas</p>
+                <button class="btn-primary" onclick="showTab('nueva')">
+                    Hacer Primera Reserva
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Variables globales
+let selectedAreaData = null;
+let maxCapacity = 0;
+
+// Fecha mínima (hoy)
+document.getElementById('fecha').min = new Date().toISOString().split('T')[0];
+
+// Tabs
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    if (tabName === 'nueva') {
+        document.getElementById('tab-nueva').classList.add('active');
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    } else {
+        document.getElementById('tab-mis-reservas').classList.add('active');
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    }
+}
+
+// Seleccionar área
+function selectArea(id, nombre, costo, capacidad, apertura, cierre, descripcion) {
+    // Guardar datos
+    selectedAreaData = {
+        id, nombre, costo, capacidad, apertura, cierre, descripcion
+    };
+    maxCapacity = capacidad;
+    
+    // Actualizar formulario
+    document.getElementById('area_id').value = id;
+    document.getElementById('area-selected-name').textContent = nombre;
+    document.getElementById('area-selected-desc').textContent = descripcion;
+    document.getElementById('area-selected-capacity').textContent = capacidad;
+    document.getElementById('area-selected-hours').textContent = apertura + ' - ' + cierre;
+    document.getElementById('area-selected-price').textContent = parseFloat(costo).toFixed(0);
+    
+    // Establecer límites de hora
+    document.getElementById('hora_inicio').min = apertura;
+    document.getElementById('hora_fin').max = cierre;
+    
+    // Marcar área seleccionada
+    document.querySelectorAll('.area-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+    
+    // Mostrar formulario con animación
+    document.querySelector('.areas-grid').style.display = 'none';
+    document.querySelector('.section-title').style.display = 'none';
+    document.getElementById('reservaForm').style.display = 'block';
+    
+    // Scroll suave
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Cambiar área
+function changeArea() {
+    document.querySelector('.areas-grid').style.display = 'grid';
+    document.querySelector('.section-title').style.display = 'block';
+    document.getElementById('reservaForm').style.display = 'none';
+    document.querySelectorAll('.area-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+}
+
+// Calcular costo
+function calculateCost() {
+    const horaInicio = document.getElementById('hora_inicio').value;
+    const horaFin = document.getElementById('hora_fin').value;
+    
+    if (!selectedAreaData || !horaInicio || !horaFin) return;
+    
+    const inicio = new Date('2000-01-01 ' + horaInicio);
+    const fin = new Date('2000-01-01 ' + horaFin);
+    const horas = (fin - inicio) / (1000 * 60 * 60);
+    
+    if (horas <= 0) {
+        document.getElementById('time-error').textContent = '⚠️ La hora de fin debe ser posterior a la de inicio';
+        document.getElementById('costoDisplay').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('time-error').textContent = '';
+    
+    const costo = selectedAreaData.costo * horas;
+    document.getElementById('costoTotal').textContent = costo.toFixed(2);
+    document.getElementById('duration').textContent = horas.toFixed(1);
+    document.getElementById('rate').textContent = selectedAreaData.costo.toFixed(0);
+    document.getElementById('costoDisplay').style.display = 'flex';
+}
+
+// Stepper de personas
+function changePersonas(delta) {
+    const input = document.getElementById('num_personas');
+    let value = parseInt(input.value) + delta;
+    
+    if (value < 1) value = 1;
+    if (value > maxCapacity) {
+        alert(`⚠️ La capacidad máxima es ${maxCapacity} personas`);
+        value = maxCapacity;
+    }
+    
+    input.value = value;
+}
+
+// Verificar disponibilidad (placeholder)
+function checkAvailability() {
+    // TODO: Implementar verificación real con AJAX
+    console.log('Verificando disponibilidad...');
+}
+</script>
+
+<style>
+/* ============================================
+   ESTILOS MÓVILES OPTIMIZADOS
+============================================ */
+.container-mobile {
+    max-width: 100%;
+    padding: 0;
+}
+
+.mobile-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    margin-bottom: 0;
+}
+
+.mobile-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+}
+
+.subtitle {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+}
+
+/* Tabs */
+.tabs-nav {
+    display: flex;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    background: white;
+    color: #666;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.tab-btn.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: #f8f9fa;
+}
+
+.tab-content {
+    display: none;
+    padding: 1.5rem;
+    animation: fadeIn 0.3s;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sección de Áreas */
+.section-title h3 {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.areas-grid {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.area-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.area-card.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.area-card:active {
+    transform: scale(0.98);
+}
+
+.area-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+.area-info {
+    flex: 1;
+}
+
+.area-info h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.area-desc {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.area-details {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.detail-badge {
+    background: #f0f0f0;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.detail-badge.price {
+    background: #d4edda;
+    color: #155724;
+}
+
+.area-check {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.area-card.selected .area-check {
+    background: #667eea;
+    border-color: #667eea;
+}
+
+.check-icon {
+    color: white;
+    font-size: 1.2rem;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.area-card.selected .check-icon {
+    opacity: 1;
+}
+
+/* Formulario */
+.reserva-form {
+    animation: slideIn 0.3s;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.selected-area-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.info-header h4 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.btn-change-area {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.info-details p {
+    margin: 0 0 1rem 0;
+    opacity: 0.9;
+}
+
+.info-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.info-badges .badge {
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #2c3e50;
+    font-size: 1rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.mobile-date, .mobile-time {
+    font-size: 1.1rem;
+}
+
+.time-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.time-input-group {
+    flex: 1;
+}
+
+.time-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+}
+
+.time-separator {
+    font-size: 1.5rem;
+    color: #667eea;
+    font-weight: bold;
+}
+
+.error-msg {
+    color: #e74c3c;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+}
+
+.availability-msg {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Costo Display */
+.costo-display {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    margin: 1.5rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.costo-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.costo-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+.costo-detail {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Stepper */
+.stepper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 12px;
+}
+
+.stepper-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    background: #667eea;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.stepper-btn:active {
+    transform: scale(0.95);
+}
+
+.stepper-input {
+    flex: 1;
+    text-align: center;
+    border: none;
+    background: transparent;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+/* Textarea */
+.mobile-textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-family: inherit;
+}
+
+/* Botón Confirmar */
+.btn-confirm-mobile {
+    width: 100%;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s;
+}
+
+.btn-confirm-mobile:active {
+    transform: scale(0.98);
+}
+
+.btn-icon {
+    font-size: 1.5rem;
+}
+
+/* Mis Reservas */
+.reservas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.reserva-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-left: 4px solid #667eea;
+}
+
+.reserva-card.confirmed {
+    border-left-color: #27ae60;
+}
+
+.reserva-card.pending {
+    border-left-color: #f39c12;
+}
+
+.reserva-card.cancelled {
+    border-left-color: #e74c3c;
+    opacity: 0.7;
+}
+
+.reserva-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.reserva-icon {
+    font-size: 2.5rem;
+}
+
+.reserva-title {
+    flex: 1;
+}
+
+.reserva-title h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-confirmada {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-pendiente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-cancelada {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.reserva-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.detail-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.detail-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    text-align: center;
+}
+
+.detail-text {
+    flex: 1;
+    color: #666;
+}
+
+.reserva-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    flex: 1;
+    padding: 0.75rem;
+    border-radius: 12px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-edit {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.btn-cancel {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-icon {
+    font-size: 5rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+/* Media Queries */
+@media (min-width: 768px) {
+    .container-mobile {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .mobile-header h2 {
+        font-size: 2rem;
+    }
+}
+</style>
+{% endblock %}

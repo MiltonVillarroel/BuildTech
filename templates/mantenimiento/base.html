@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>⚙️ Mantenimiento</h2>
+        <nav class="page-nav">
+            <a href="{{ url_for('mantenimiento.list_mantenimiento') }}" class="btn btn-info">
+                📋 Lista de Tickets
+            </a>
+            <a href="{{ url_for('mantenimiento.create_ticket') }}" class="btn btn-primary">
+                ➕ Crear Ticket
+            </a>
+        </nav>
+    </div>
+    
+    {% block maintenance_content %}{% endblock %}
+</div>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-header h2 {
+        margin-bottom: 0;
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .page-nav {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .page-nav {
+            flex-direction: column;
+        }
+
+        .page-nav .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

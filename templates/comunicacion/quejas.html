@@ -1,0 +1,429 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h2>📝 Quejas y Sugerencias</h2>
+        <a href="{{ url_for('comunicacion.crear_queja') }}" class="btn btn-primary">
+            ➕ Enviar Queja
+        </a>
+    </div>
+    
+    {% if current_user.has_role('admin') %}
+    <div class="quejas-filters">
+        <button class="filter-btn active" onclick="filterQuejas('todas')">Todas</button>
+        <button class="filter-btn" onclick="filterQuejas('pendiente')">Pendientes</button>
+        <button class="filter-btn" onclick="filterQuejas('en_revision')">En Revisión</button>
+        <button class="filter-btn" onclick="filterQuejas('resuelta')">Resueltas</button>
+        <button class="filter-btn" onclick="filterQuejas('archivada')">Archivadas</button>
+    </div>
+    {% endif %}
+    
+    {% if quejas %}
+        <div class="quejas-container">
+            {% for queja in quejas %}
+            <div class="queja-card" data-estado="{{ queja.estado }}" data-categoria="{{ queja.categoria }}">
+                <div class="queja-header">
+                    <div class="queja-info">
+                        <span class="queja-id">#{{ queja.id }}</span>
+                        <span class="categoria-badge categoria-{{ queja.categoria }}">
+                            {% if queja.categoria == 'mantenimiento' %}
+                                🔧 Mantenimiento
+                            {% elif queja.categoria == 'seguridad' %}
+                                🛡️ Seguridad
+                            {% elif queja.categoria == 'limpieza' %}
+                                🧹 Limpieza
+                            {% elif queja.categoria == 'vecinos' %}
+                                👥 Vecinos
+                            {% else %}
+                                📌 Otro
+                            {% endif %}
+                        </span>
+                        <span class="estado-badge estado-{{ queja.estado }}">
+                            {% if queja.estado == 'pendiente' %}
+                                ⏳ Pendiente
+                            {% elif queja.estado == 'en_revision' %}
+                                👁️ En Revisión
+                            {% elif queja.estado == 'resuelta' %}
+                                ✅ Resuelta
+                            {% else %}
+                                📁 Archivada
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="queja-fecha">
+                        <small>📅 {{ queja.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                </div>
+                
+                <div class="queja-body">
+                    <div class="queja-autor">
+                        {% if queja.anonima %}
+                            <span class="autor-anonimo">👤 Anónimo</span>
+                        {% else %}
+                            <span class="autor-nombre">👤 {{ queja.autor }}</span>
+                        {% endif %}
+                    </div>
+                    <p class="queja-contenido">{{ queja.contenido }}</p>
+                    
+                    {% if queja.respuesta %}
+                    <div class="queja-respuesta">
+                        <div class="respuesta-header">
+                            <strong>💬 Respuesta del Administrador:</strong>
+                            <small>{{ queja.fecha_respuesta.strftime('%d/%m/%Y %H:%M') if queja.fecha_respuesta else '' }}</small>
+                        </div>
+                        <p>{{ queja.respuesta }}</p>
+                        <small class="respondida-por">Respondido por: {{ queja.respondida_por }}</small>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="queja-footer">
+                    <a href="{{ url_for('comunicacion.ver_queja', queja_id=queja.id) }}" class="btn btn-info btn-sm">
+                        👁️ Ver Detalle
+                    </a>
+                    
+                    {% if current_user.has_role('admin') and not queja.respuesta %}
+                    <a href="{{ url_for('comunicacion.responder_queja', queja_id=queja.id) }}" class="btn btn-success btn-sm">
+                        💬 Responder
+                    </a>
+                    {% endif %}
+                    
+                    {% if current_user.has_role('admin') %}
+                    <select class="estado-select" onchange="cambiarEstado({{ queja.id }}, this.value)">
+                        <option value="">Cambiar estado...</option>
+                        <option value="pendiente" {% if queja.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+                        <option value="en_revision" {% if queja.estado == 'en_revision' %}selected{% endif %}>En Revisión</option>
+                        <option value="resuelta" {% if queja.estado == 'resuelta' %}selected{% endif %}>Resuelta</option>
+                        <option value="archivada" {% if queja.estado == 'archivada' %}selected{% endif %}>Archivada</option>
+                    </select>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-quejas">
+            <div class="empty-state">
+                <span class="empty-icon">📭</span>
+                <h3>No hay quejas registradas</h3>
+                {% if not current_user.has_role('admin') %}
+                <p>¿Tienes alguna sugerencia o queja? Envíala aquí</p>
+                <a href="{{ url_for('comunicacion.crear_queja') }}" class="btn btn-primary">
+                    Enviar primera queja
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    function filterQuejas(estado) {
+        const cards = document.querySelectorAll('.queja-card');
+        const buttons = document.querySelectorAll('.filter-btn');
+        
+        buttons.forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        cards.forEach(card => {
+            if (estado === 'todas' || card.dataset.estado === estado) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    
+    function cambiarEstado(quejaId, nuevoEstado) {
+        if (!nuevoEstado) return;
+        
+        fetch(`/comunicacion/quejas/${quejaId}/estado`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ estado: nuevoEstado })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al cambiar el estado');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cambiar el estado');
+        });
+    }
+</script>
+
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-header h2 {
+        margin-bottom: 0;
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .quejas-filters {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        border: 2px solid #ddd;
+        background: white;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 500;
+    }
+
+    .filter-btn:hover {
+        background: #f0f0f0;
+    }
+
+    .filter-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .quejas-container {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .queja-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border-left: 4px solid #ddd;
+    }
+
+    .queja-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .queja-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.5rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .queja-info {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .queja-id {
+        font-weight: bold;
+        color: #666;
+    }
+
+    .categoria-badge, .estado-badge {
+        padding: 0.3rem 0.7rem;
+        border-radius: 15px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .categoria-mantenimiento {
+        background: #e3f2fd;
+        color: #1976D2;
+    }
+
+    .categoria-seguridad {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .categoria-limpieza {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .categoria-vecinos {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .categoria-otro {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .estado-pendiente {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .estado-en_revision {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .estado-resuelta {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .estado-archivada {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
+    .queja-fecha small {
+        color: #666;
+    }
+
+    .queja-body {
+        padding: 1.5rem;
+    }
+
+    .queja-autor {
+        margin-bottom: 0.5rem;
+    }
+
+    .autor-anonimo {
+        color: #999;
+        font-style: italic;
+    }
+
+    .autor-nombre {
+        color: #555;
+        font-weight: 500;
+    }
+
+    .queja-contenido {
+        color: #333;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        margin: 0;
+    }
+
+    .queja-respuesta {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: #f0f8ff;
+        border-left: 3px solid #2196F3;
+        border-radius: 8px;
+    }
+
+    .respuesta-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .respuesta-header strong {
+        color: #1976D2;
+    }
+
+    .respuesta-header small {
+        color: #666;
+    }
+
+    .queja-respuesta p {
+        margin: 0.5rem 0;
+        color: #555;
+    }
+
+    .respondida-por {
+        color: #666;
+        font-style: italic;
+    }
+
+    .queja-footer {
+        display: flex;
+        gap: 0.5rem;
+        padding: 1rem 1.5rem;
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .estado-select {
+        padding: 0.4rem 0.8rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        cursor: pointer;
+    }
+
+    .no-quejas {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        opacity: 0.3;
+    }
+
+    .empty-state h3 {
+        color: var(--dark);
+        margin: 0;
+    }
+
+    .empty-state p {
+        color: #666;
+        margin: 0 0 1rem 0;
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .queja-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .queja-footer {
+            flex-direction: column;
+        }
+
+        .estado-select {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}

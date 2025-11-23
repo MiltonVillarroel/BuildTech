@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> 
+    <title>{% block title %}{{ title or 'BuildTech App' }}{% endblock %}</title>
+</head>
+<body>
+    
+    <header>
+        <h1>🏢 BuildTech App</h1>
+        <nav>
+            {% if current_user.is_authenticated %}
+                <ul>
+                    <li><a href="{{ url_for('auth.home') }}">🏠 Inicio</a></li>
+                    
+                    <!-- Menú según rol -->
+                    {% if current_user.has_role('admin') %}
+                        <!-- MENÚ ADMINISTRADOR -->
+                        <li><a href="{{ url_for('mantenimiento.list_mantenimiento') }}">⚙️ Mantenimiento</a></li>
+                        
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle">💬 Comunicación ▼</a>
+                            <ul class="dropdown-menu">
+                                <li><a href="{{ url_for('comunicacion.chat_general') }}">💬 Chat General</a></li>
+                                <li><a href="{{ url_for('comunicacion.avisos') }}">📢 Avisos</a></li>
+                                <li><a href="{{ url_for('comunicacion.quejas') }}">📝 Quejas</a></li>
+                                <li><a href="{{ url_for('comunicacion.notificaciones') }}">🔔 Notificaciones</a></li>
+                            </ul>
+                        </li>
+                        
+                        <li><a href="{{ url_for('finanzas.resumen_financiero') }}">💰 Finanzas</a></li>
+                        <li><a href="{{ url_for('reservas.reservas_admin') }}">📅 Reservas</a></li>
+                        
+                    {% else %}
+                        <!-- MENÚ RESIDENTE -->
+                        <li><a href="{{ url_for('mantenimiento.create_ticket') }}">🔧 Reportar Problema</a></li>
+                        <li><a href="{{ url_for('reservas.reservas') }}">📅 Reservar Área</a></li>
+                        
+                        {% if current_user.departamento %}
+                        <li><a href="{{ url_for('finanzas.calcular_cargos_mensuales', departamento_id=current_user.departamento) }}">💳 Mis Pagos</a></li>
+                        {% endif %}
+                        
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle">💬 Comunicación ▼</a>
+                            <ul class="dropdown-menu">
+                                <li><a href="{{ url_for('comunicacion.chat_general') }}">💬 Chat</a></li>
+                                <li><a href="{{ url_for('comunicacion.avisos') }}">📢 Avisos</a></li>
+                                <li><a href="{{ url_for('comunicacion.quejas') }}">📝 Quejas</a></li>
+                            </ul>
+                        </li>
+                    {% endif %}
+                    
+                    <!-- Notificaciones (solo admin) -->
+                    {% if current_user.has_role('admin') %}
+                    <li>
+                        <a href="{{ url_for('comunicacion.notificaciones') }}" class="notification-link">
+                            🔔 
+                            <span id="notification-badge" class="notification-badge" style="display: none;">0</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Usuario y Logout -->
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle">👤 {{ current_user.first_name }} ▼</a>
+                        <ul class="dropdown-menu">
+                            <li><a href="{{ url_for('auth.cambiar_password') }}">🔒 Cambiar Contraseña</a></li>
+                            <li><a href="{{ url_for('auth.logout') }}">🚪 Cerrar Sesión</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            {% else %}
+                <ul>
+                    <li><a href="{{ url_for('auth.login') }}">Iniciar Sesión</a></li>
+                    <li><a href="{{ url_for('auth.register') }}">Registrarse</a></li>
+                </ul>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% if title_page %}
+            <h2>{{ title_page }}</h2>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+
+    </main>
+    
+    <footer>
+        <p>&copy; 2025 BuildTech App. Sistema de Gestión Integral para Edificios Multifamiliares</p>
+        <p>
+            <small>
+                Desarrollado con ❤️ | 
+                <a href="#" style="color: white;">Políticas</a> | 
+                <a href="#" style="color: white;">Privacidad</a> | 
+                <a href="#" style="color: white;">Soporte</a>
+            </small>
+        </p>
+    </footer>
+    
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const badge = document.getElementById('notification-badge');
+            
+            // Función para actualizar el badge
+            function updateNotificationBadgeFromData(data) {
+                if (badge && data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = 'inline-block';
+                } else if (badge) {
+                    badge.style.display = 'none';
+                }
+            }
+
+            // 1. Fetch inicial
+            if (badge) {
+                fetch('{{ url_for("comunicacion.notificaciones_no_leidas") }}')
+                    .then(response => {
+                        if (response.ok) return response.json();
+                        throw new Error('Error al cargar notificaciones');
+                    })
+                    .then(updateNotificationBadgeFromData)
+                    .catch(error => console.error('Error al cargar notificaciones:', error));
+            }
+
+            // 2. Socket.IO para notificaciones en tiempo real
+            {% if current_user.is_authenticated and current_user.has_role('admin') %}
+                const socket = io();
+                
+                socket.on('connect', () => {
+                    socket.emit('join_notifications');
+                });
+                
+                socket.on('new_notification', (notification) => {
+                    if (badge) {
+                        const currentCount = parseInt(badge.textContent) || 0;
+                        badge.textContent = currentCount + 1;
+                        badge.style.display = 'inline-block';
+                        
+                        badge.classList.add('badge-pulse');
+                        setTimeout(() => badge.classList.remove('badge-pulse'), 1000);
+                    }
+                    
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification('Nueva notificación', {
+                            body: notification.mensaje,
+                            icon: '/static/img/logo_buildtech.png'
+                        });
+                    }
+                });
+            {% endif %}
+            
+            // 3. Dropdown menu functionality
+            const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+            dropdownToggles.forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const dropdown = toggle.parentElement;
+                    
+                    // Cerrar otros dropdowns
+                    document.querySelectorAll('.dropdown').forEach(d => {
+                        if (d !== dropdown) d.classList.remove('active');
+                    });
+                    
+                    dropdown.classList.toggle('active');
+                });
+            });
+            
+            // Cerrar dropdown al hacer click fuera
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown').forEach(dropdown => {
+                        dropdown.classList.remove('active');
+                    });
+                }
+            });
+            
+            // Auto-ocultar mensajes flash después de 5 segundos
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(msg => {
+                setTimeout(() => {
+                    msg.style.opacity = '0';
+                    setTimeout(() => msg.remove(), 500);
+                }, 5000);
+            });
+        });
+    </script>
+    
+    <style>
+        /* Estilos para el dropdown menu */
+        .dropdown {
+            position: relative;
+        }
+        
+        .dropdown-toggle {
+            cursor: pointer;
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: white;
+            min-width: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 0.5rem 0;
+            margin-top: 0.5rem;
+            z-index: 1000;
+        }
+        
+        .dropdown.active .dropdown-menu {
+            display: block;
+        }
+        
+        .dropdown-menu li {
+            display: block;
+        }
+        
+        .dropdown-menu a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s;
+            border-radius: 0;
+        }
+        
+        .dropdown-menu a:hover {
+            background: #f0f0f0;
+            transform: none;
+        }
+        
+        @media (max-width: 768px) {
+            .dropdown-menu {
+                position: static;
+                box-shadow: none;
+                background: rgba(255,255,255,0.1);
+                margin-top: 0;
+            }
+            
+            .dropdown-menu a {
+                color: white;
+                padding-left: 2rem;
+            }
+            
+            .dropdown-menu a:hover {
+                background: rgba(255,255,255,0.15);
+            }
+        }
+    </style>
+</body>
+</html>

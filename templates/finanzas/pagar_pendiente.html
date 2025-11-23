@@ -1,0 +1,355 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="payment-card">
+                <div class="payment-header">
+                    <h2>💳 Procesar Pago</h2>
+                    <p class="text-muted">Complete la información para registrar el pago</p>
+                </div>
+                
+                <div class="payment-body">
+                    <!-- Información del Pago -->
+                    <div class="payment-info">
+                        <div class="info-section">
+                            <h4>📋 Información del Pago</h4>
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="label">Tipo:</span>
+                                    <span class="value">{{ tipo_pago }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Descripción:</span>
+                                    <span class="value">{{ descripcion }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="label">Departamento:</span>
+                                    <span class="value">#{{ departamento }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detalle del Cargo -->
+                        {% if detalle %}
+                        <div class="info-section mt-3">
+                            <h4>📊 Detalle del Cargo</h4>
+                            <table class="detail-table">
+                                {% for concepto, valor in detalle.items() %}
+                                <tr>
+                                    <td>{{ concepto }}</td>
+                                    <td class="text-end">{{ valor }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Monto Total -->
+                        <div class="amount-display">
+                            <div class="amount-label">Monto a Pagar</div>
+                            <div class="amount-value">Bs. {{ "%.2f"|format(monto) }}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulario de Pago -->
+                    <form method="POST" class="payment-form">
+                        <div class="form-section">
+                            <h4>💳 Método de Pago</h4>
+                            
+                            <div class="payment-methods">
+                                <label class="payment-method">
+                                    <input type="radio" name="metodo_pago" value="efectivo" checked>
+                                    <div class="method-card">
+                                        <div class="method-icon">💵</div>
+                                        <div class="method-name">Efectivo</div>
+                                    </div>
+                                </label>
+                                
+                                <label class="payment-method">
+                                    <input type="radio" name="metodo_pago" value="transferencia">
+                                    <div class="method-card">
+                                        <div class="method-icon">🏦</div>
+                                        <div class="method-name">Transferencia</div>
+                                    </div>
+                                </label>
+                                
+                                <label class="payment-method">
+                                    <input type="radio" name="metodo_pago" value="tarjeta">
+                                    <div class="method-card">
+                                        <div class="method-icon">💳</div>
+                                        <div class="method-name">Tarjeta</div>
+                                    </div>
+                                </label>
+                                
+                                <label class="payment-method">
+                                    <input type="radio" name="metodo_pago" value="qr">
+                                    <div class="method-card">
+                                        <div class="method-icon">📱</div>
+                                        <div class="method-name">QR</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-section">
+                            <label for="referencia" class="form-label">
+                                📝 Número de Referencia (Opcional)
+                            </label>
+                            <input 
+                                type="text" 
+                                id="referencia" 
+                                name="referencia" 
+                                class="form-control" 
+                                placeholder="Ingrese el número de referencia o comprobante"
+                            >
+                            <small class="form-text">Para transferencias, ingrese el número de operación</small>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <strong>ℹ️ Importante:</strong>
+                            <ul class="mb-0">
+                                <li>El pago será registrado inmediatamente en el sistema</li>
+                                <li>Recibirá un comprobante por email (si está configurado)</li>
+                                <li>Este registro es permanente y no se puede deshacer</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                ✅ Confirmar Pago
+                            </button>
+                            <a href="{{ url_for('finanzas.calcular_cargos_mensuales', departamento_id=departamento) }}" 
+                               class="btn btn-secondary btn-lg">
+                                ❌ Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+    margin: 2rem 0;
+}
+
+.payment-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.payment-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+}
+
+.payment-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+.payment-body {
+    padding: 2rem;
+}
+
+.payment-info {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.info-section {
+    margin-bottom: 1.5rem;
+}
+
+.info-section:last-child {
+    margin-bottom: 0;
+}
+
+.info-section h4 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.info-item .label {
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.info-item .value {
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.detail-table {
+    width: 100%;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.detail-table tr {
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-table tr:last-child {
+    border-bottom: none;
+    background: #e3f2fd;
+    font-weight: bold;
+}
+
+.detail-table td {
+    padding: 0.75rem 1rem;
+}
+
+.amount-display {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.amount-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.5rem;
+}
+
+.amount-value {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+.payment-form {
+    margin-top: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.form-section h4 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+}
+
+.payment-methods {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.payment-method {
+    cursor: pointer;
+    margin: 0;
+}
+
+.payment-method input[type="radio"] {
+    display: none;
+}
+
+.method-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.payment-method input[type="radio"]:checked + .method-card {
+    border-color: #667eea;
+    background: #f0f4ff;
+    transform: scale(1.05);
+}
+
+.method-card:hover {
+    border-color: #667eea;
+    transform: translateY(-3px);
+}
+
+.method-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.method-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-control {
+    padding: 0.75rem 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.form-actions .btn {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .payment-header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .payment-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .amount-value {
+        font-size: 2.5rem;
+    }
+    
+    .payment-methods {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

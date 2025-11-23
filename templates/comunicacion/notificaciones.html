@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>🔔 Notificaciones</h2>
+    
+    <div class="notifications-container">
+        {% if notificaciones %}
+            <div class="notifications-list">
+                {% for notif in notificaciones %}
+                <div class="notification-item {% if not notif.leido %}unread{% endif %}" data-id="{{ notif.id }}">
+                    <div class="notification-icon">
+                        {% if notif.tipo == 'nuevo_ticket' %}
+                            <span class="icon">🎫</span>
+                        {% elif notif.tipo == 'ticket_actualizado' %}
+                            <span class="icon">✏️</span>
+                        {% else %}
+                            <span class="icon">📢</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="notification-content">
+                        <p class="notification-message">{{ notif.mensaje }}</p>
+                        <small class="notification-time">{{ notif.timestamp.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                    
+                    <div class="notification-actions">
+                        {% if notif.ticket_id %}
+                            <a href="{{ url_for('mantenimiento.generate_ticket', id=notif.ticket_id) }}" 
+                               class="btn btn-info btn-sm">
+                                Ver Ticket
+                            </a>
+                        {% endif %}
+                        
+                        {% if not notif.leido %}
+                            <button class="btn btn-success btn-sm mark-read-btn" 
+                                    onclick="marcarComoLeida({{ notif.id }})">
+                                Marcar leída
+                            </button>
+                        {% else %}
+                            <span class="badge-read">✓ Leída</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-notifications">
+                <p>📭 No hay notificaciones</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    const socket = io();
+    
+    socket.on('connect', () => {
+        socket.emit('join_notifications');
+    });
+    
+    socket.on('new_notification', (notification) => {
+        addNotificationToList(notification);
+        updateNotificationBadge();
+        
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Nueva notificación', {
+                body: notification.mensaje
+            });
+        }
+    });
+    
+    function addNotificationToList(notif) {
+        const list = document.querySelector('.notifications-list');
+        const noNotifDiv = document.querySelector('.no-notifications');
+        
+        // Crear la lista si no existe
+        if (noNotifDiv) {
+            noNotifDiv.remove();
+            const container = document.querySelector('.notifications-container');
+            const newList = document.createElement('div');
+            newList.className = 'notifications-list';
+            container.appendChild(newList);
+        }
+        
+        const listElement = document.querySelector('.notifications-list');
+        
+        const icon = notif.tipo === 'nuevo_ticket' ? '🎫' : 
+                     notif.tipo === 'ticket_actualizado' ? '✏️' : '📢';
+        
+        const notifDiv = document.createElement('div');
+        notifDiv.className = 'notification-item unread';
+        notifDiv.setAttribute('data-id', notif.id);
+        
+        notifDiv.innerHTML = `
+            <div class="notification-icon">
+                <span class="icon">${icon}</span>
+            </div>
+            <div class="notification-content">
+                <p class="notification-message">${escapeHtml(notif.mensaje)}</p>
+                <small class="notification-time">Justo ahora</small>
+            </div>
+            <div class="notification-actions">
+                ${notif.ticket_id ? `
+                    <a href="/mantenimiento/ticket/${notif.ticket_id}" class="btn btn-info btn-sm">
+                        Ver Ticket
+                    </a>
+                ` : ''}
+                <button class="btn btn-success btn-sm mark-read-btn" 
+                        onclick="marcarComoLeida(${notif.id})">
+                    Marcar leída
+                </button>
+            </div>
+        `;
+        
+        listElement.insertBefore(notifDiv, listElement.firstChild);
+    }
+    
+    function marcarComoLeida(id) {
+        fetch(`/comunicacion/api/notificaciones/${id}/marcar-leida`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const notifItem = document.querySelector(`[data-id="${id}"]`);
+                if (notifItem) {
+                    notifItem.classList.remove('unread');
+                    const actions = notifItem.querySelector('.notification-actions');
+                    const markBtn = actions.querySelector('.mark-read-btn');
+                    if (markBtn) {
+                        markBtn.replaceWith(createReadBadge());
+                    }
+                }
+                updateNotificationBadge();
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function createReadBadge() {
+        const badge = document.createElement('span');
+        badge.className = 'badge-read';
+        badge.textContent = '✓ Leída';
+        return badge;
+    }
+    
+    function updateNotificationBadge() {
+        fetch('/comunicacion/api/notificaciones/no-leidas')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.getElementById('notification-badge');
+                if (badge) {
+                    badge.textContent = data.count;
+                    badge.style.display = data.count > 0 ? 'inline-block' : 'none';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+</script>
+
+<style>
+    .notifications-container {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    .notifications-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .notification-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+        background: #f8f9fa;
+        border-left: 4px solid #ddd;
+        transition: all 0.3s;
+    }
+    
+    .notification-item.unread {
+        background: #fff3cd;
+        border-left-color: #ffc107;
+    }
+    
+    .notification-icon {
+        font-size: 2rem;
+    }
+    
+    .notification-content {
+        flex: 1;
+    }
+    
+    .notification-message {
+        margin: 0;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .notification-time {
+        color: #666;
+        font-size: 0.85rem;
+    }
+    
+    .notification-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .badge-read {
+        color: #27ae60;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .no-notifications {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+    }
+    
+    .no-notifications p {
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}

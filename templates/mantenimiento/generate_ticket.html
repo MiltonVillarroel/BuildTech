@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Detalle del Ticket #{{ ticket.id_mantenimiento }}</h2>
+    
+    <div class="ticket-detail">
+        <div class="detail-section">
+            <h3>Información General</h3>
+            <table class="detail-table">
+                <tr>
+                    <td><strong>ID:</strong></td>
+                    <td>{{ ticket.id_mantenimiento }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Descripción:</strong></td>
+                    <td>{{ ticket.descripcion }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Prioridad:</strong></td>
+                    <td>
+                        <span class="priority priority-{{ ticket.prioridad|lower }}">
+                            {{ ticket.prioridad }}
+                        </span>
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Fecha de Creación:</strong></td>
+                    <td>{{ ticket.fecha_creacion.strftime('%Y-%m-%d %H:%M') if ticket.fecha_creacion else 'N/A' }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="detail-section">
+            <h3>Información de Mantenimiento</h3>
+            <table class="detail-table">
+                <tr>
+                    <td><strong>Responsable:</strong></td>
+                    <td>{{ ticket.responsable or 'Sin asignar' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Fecha de Inicio:</strong></td>
+                    <td>{{ ticket.fecha_ini or 'No iniciado' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Fecha de Fin:</strong></td>
+                    <td>{{ ticket.fecha_fin or 'Pendiente' }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Costo:</strong></td>
+                    <td>{{ '${:,.2f}'.format(ticket.costo) if ticket.costo else 'No estimado' }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="detail-section">
+            <h3>Estado del Trabajo</h3>
+            <table class="detail-table">
+                <tr>
+                    <td><strong>Trabajo Realizado:</strong></td>
+                    <td>
+                        {% if ticket.trabajo_realizado %}
+                            <span class="status status-completed">Sí</span>
+                        {% else %}
+                            <span class="status status-pending">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Evidencia:</strong></td>
+                    <td>
+                        {% if ticket.evidencia_url %}
+                            <a href="{{ ticket.evidencia_url }}" target="_blank" class="btn btn-info">Ver Evidencia</a>
+                        {% else %}
+                            <span>No disponible</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        {% if ticket.evidencia_url %}
+        <div class="detail-section">
+            <h3>Evidencia Fotográfica</h3>
+            <div class="evidence-container">
+                <img src="{{ ticket.evidencia_url }}" alt="Evidencia del trabajo" class="evidence-image">
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="actions-section">
+            <a href="{{ download_url }}" class="button is-primary" download>Descargar PDF</a>
+            <a href="{{ url_for('mantenimiento.list_mantenimiento') }}" class="button">Volver a la lista</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

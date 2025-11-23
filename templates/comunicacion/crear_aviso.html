@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>📢 Crear Nuevo Aviso</h2>
+    
+    <form method="POST" class="form-modern">
+        <div class="form-card">
+            <div class="field">
+                <label for="titulo">
+                    <span class="label-icon">📝</span>
+                    Título del Aviso
+                </label>
+                <div class="control">
+                    <input 
+                        type="text" 
+                        id="titulo" 
+                        name="titulo" 
+                        placeholder="Ej: Mantenimiento del Ascensor"
+                        required
+                        maxlength="200"
+                    >
+                    <small>Máximo 200 caracteres</small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="categoria">
+                    <span class="label-icon">🏷️</span>
+                    Categoría
+                </label>
+                <div class="control">
+                    <select id="categoria" name="categoria" required>
+                        <option value="" disabled selected>Seleccione la categoría</option>
+                        <option value="urgente">🚨 Urgente - Requiere atención inmediata</option>
+                        <option value="importante">⚠️ Importante - Información relevante</option>
+                        <option value="informativo">ℹ️ Informativo - Comunicado general</option>
+                    </select>
+                    <small>Selecciona según la importancia del aviso</small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="contenido">
+                    <span class="label-icon">📄</span>
+                    Contenido del Aviso
+                </label>
+                <div class="control">
+                    <textarea 
+                        id="contenido" 
+                        name="contenido" 
+                        placeholder="Escribe aquí el contenido completo del aviso..."
+                        required
+                        rows="8"
+                    ></textarea>
+                    <small>Proporciona todos los detalles necesarios. El aviso no se puede editar después.</small>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <strong>ℹ️ Nota importante:</strong>
+                <ul>
+                    <li>Los avisos son permanentes y no se pueden editar</li>
+                    <li>Todos los usuarios verán este aviso</li>
+                    <li>Solo puedes archivar avisos, no eliminarlos</li>
+                    <li>Incluye toda la información relevante (fechas, horarios, contactos)</li>
+                </ul>
+            </div>
+
+            <div class="field form-actions">
+                <button type="submit" class="button is-primary">
+                    ✅ Publicar Aviso
+                </button>
+                <a href="{{ url_for('comunicacion.avisos') }}" class="button">
+                    ❌ Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+    .form-modern {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .label-icon {
+        margin-right: 0.5rem;
+    }
+
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196F3;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+
+    .info-box strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #1976D2;
+    }
+
+    .info-box ul {
+        margin: 0.5rem 0 0 1.5rem;
+        color: #555;
+    }
+
+    .info-box li {
+        margin-bottom: 0.3rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .form-actions .button {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}

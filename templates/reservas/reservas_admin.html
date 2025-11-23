@@ -1,0 +1,176 @@
+<!-- app/templates/reservas/reservas_admin.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>🔧 Administración de Reservas</h2>
+    
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label>Estado</label>
+                    <select name="estado" class="form-control" onchange="this.form.submit()">
+                        <option value="todas" {% if estado_filtro == 'todas' %}selected{% endif %}>Todas</option>
+                        <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>Pendientes</option>
+                        <option value="confirmada" {% if estado_filtro == 'confirmada' %}selected{% endif %}>Confirmadas</option>
+                        <option value="cancelada" {% if estado_filtro == 'cancelada' %}selected{% endif %}>Canceladas</option>
+                        <option value="completada" {% if estado_filtro == 'completada' %}selected{% endif %}>Completadas</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <label>Área</label>
+                    <select name="area" class="form-control" onchange="this.form.submit()">
+                        <option value="todas" {% if area_filtro == 'todas' %}selected{% endif %}>Todas</option>
+                        {% for area in areas %}
+                        <option value="{{ area.id }}" {% if area_filtro == area.id|string %}selected{% endif %}>
+                            {{ area.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4 d-flex align-items-end">
+                    <a href="{{ url_for('reservas.reservas_admin') }}" class="btn btn-secondary w-100">
+                        Limpiar Filtros
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card bg-warning">
+                <h3>{{ reservas_pendientes|length }}</h3>
+                <p>Pendientes de Confirmar</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-primary">
+                <h3>{{ reservas|length }}</h3>
+                <p>Total de Reservas</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-success">
+                <h3>{{ areas|length }}</h3>
+                <p>Áreas Disponibles</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card bg-info">
+                <h3>{{ (reservas|selectattr('estado', 'equalto', 'confirmada')|list|length) }}</h3>
+                <p>Confirmadas</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tabla de Reservas -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5>📋 Todas las Reservas</h5>
+        </div>
+        <div class="card-body">
+            {% if reservas %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Área</th>
+                            <th>Departamento</th>
+                            <th>Usuario</th>
+                            <th>Fecha</th>
+                            <th>Horario</th>
+                            <th>Personas</th>
+                            <th>Costo</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reserva in reservas %}
+                        <tr>
+                            <td>#{{ reserva.id }}</td>
+                            <td>{{ reserva.area.nombre }}</td>
+                            <td>{{ reserva.departamento }}</td>
+                            <td>{{ reserva.usuario }}</td>
+                            <td>{{ reserva.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ reserva.hora_inicio.strftime('%H:%M') }} - {{ reserva.hora_fin.strftime('%H:%M') }}</td>
+                            <td>{{ reserva.num_personas }}</td>
+                            <td>Bs. {{ "%.2f"|format(reserva.costo_total) }}</td>
+                            <td>
+                                <span class="badge bg-{% if reserva.estado == 'confirmada' %}success{% elif reserva.estado == 'pendiente' %}warning{% elif reserva.estado == 'cancelada' %}danger{% else %}secondary{% endif %}">
+                                    {{ reserva.estado|upper }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('reservas.editar_reserva', reserva_id=reserva.id) }}" 
+                                       class="btn btn-sm btn-warning" title="Editar">
+                                        ✏️
+                                    </a>
+                                    
+                                    {% if reserva.estado == 'pendiente' %}
+                                    <form method="POST" action="{{ url_for('reservas.editar_reserva', reserva_id=reserva.id) }}" 
+                                          style="display:inline;">
+                                        <input type="hidden" name="accion" value="confirmar">
+                                        <button type="submit" class="btn btn-sm btn-success" title="Confirmar">
+                                            ✓
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    
+                                    <form method="POST" action="{{ url_for('reservas.eliminar_reserva', reserva_id=reserva.id) }}" 
+                                          style="display:inline;" 
+                                          onsubmit="return confirm('¿Cancelar esta reserva?');">
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Cancelar">
+                                            ✕
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">📭 No hay reservas con los filtros seleccionados.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    padding: 1.5rem;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.stat-card p {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.9rem;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}

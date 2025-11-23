@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>📝 Enviar Queja o Sugerencia</h2>
+    
+    <form method="POST" class="form-modern">
+        <div class="form-card">
+            <div class="info-box info-privacidad">
+                <strong>🔒 Tu privacidad es importante</strong>
+                <p>Puedes enviar tu queja de forma anónima o con tu nombre. Las quejas anónimas también son revisadas y atendidas por los administradores.</p>
+            </div>
+
+            <div class="field">
+                <label for="anonima">
+                    <span class="label-icon">👤</span>
+                    Privacidad
+                </label>
+                <div class="control">
+                    <select id="anonima" name="anonima" required onchange="toggleAnonimato()">
+                        <option value="no">Con mi nombre ({{ current_user.first_name }} {{ current_user.last_name }})</option>
+                        <option value="si">Anónima (sin identificación)</option>
+                    </select>
+                    <small id="anonima-help">Tu nombre será visible para los administradores</small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="categoria">
+                    <span class="label-icon">🏷️</span>
+                    Categoría
+                </label>
+                <div class="control">
+                    <select id="categoria" name="categoria" required>
+                        <option value="" disabled selected>Seleccione la categoría</option>
+                        <option value="mantenimiento">🔧 Mantenimiento - Problemas de infraestructura</option>
+                        <option value="seguridad">🛡️ Seguridad - Temas de seguridad del edificio</option>
+                        <option value="limpieza">🧹 Limpieza - Aseo de áreas comunes</option>
+                        <option value="vecinos">👥 Vecinos - Convivencia y ruidos</option>
+                        <option value="otro">📌 Otro - Otros temas</option>
+                    </select>
+                    <small>Selecciona la categoría que mejor describa tu queja</small>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="contenido">
+                    <span class="label-icon">📄</span>
+                    Describe tu queja o sugerencia
+                </label>
+                <div class="control">
+                    <textarea 
+                        id="contenido" 
+                        name="contenido" 
+                        placeholder="Describe detalladamente tu queja, sugerencia o comentario..."
+                        required
+                        rows="8"
+                    ></textarea>
+                    <small>Proporciona todos los detalles relevantes: qué pasó, cuándo, dónde, etc.</small>
+                </div>
+            </div>
+
+            <div class="info-box info-proceso">
+                <strong>ℹ️ ¿Qué sucede después?</strong>
+                <ul>
+                    <li>✅ Tu queja será revisada por un administrador</li>
+                    <li>💬 Recibirás una respuesta en cuanto sea evaluada</li>
+                    <li>👁️ Podrás ver el estado de tu queja en cualquier momento</li>
+                    <li>📊 Las quejas ayudan a mejorar la convivencia del edificio</li>
+                </ul>
+            </div>
+
+            <div class="field form-actions">
+                <button type="submit" class="button is-primary">
+                    ✅ Enviar Queja
+                </button>
+                <a href="{{ url_for('comunicacion.quejas') }}" class="button">
+                    ❌ Cancelar
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleAnonimato() {
+        const select = document.getElementById('anonima');
+        const help = document.getElementById('anonima-help');
+        
+        if (select.value === 'si') {
+            help.textContent = 'Tu identidad no será visible para nadie';
+        } else {
+            help.textContent = 'Tu nombre será visible para los administradores';
+        }
+    }
+</script>
+
+<style>
+    .form-modern {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .form-card {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+    }
+
+    .label-icon {
+        margin-right: 0.5rem;
+    }
+
+    .info-box {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+    }
+
+    .info-privacidad {
+        background: #f0f8ff;
+        border-left: 4px solid #2196F3;
+    }
+
+    .info-proceso {
+        background: #f0fdf4;
+        border-left: 4px solid #10b981;
+    }
+
+    .info-box strong {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .info-box p {
+        margin: 0;
+        color: #555;
+        line-height: 1.6;
+    }
+
+    .info-box ul {
+        margin: 0.5rem 0 0 1.5rem;
+        color: #555;
+    }
+
+    .info-box li {
+        margin-bottom: 0.3rem;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e0e0e0;
+    }
+
+    .form-actions .button {
+        flex: 1;
+    }
+
+    @media (max-width: 768px) {
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
