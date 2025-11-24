@@ -15,7 +15,7 @@
         </p>
     </div>
     
-    <!-- Botón de Asistente IA - NUEVO -->
+    <!-- Botón de Asistente IA -->
     <div class="ai-assistant-banner">
         <div class="ai-content">
             <div class="ai-icon">🤖</div>
@@ -24,11 +24,20 @@
                 <p>Nuestro asistente virtual está disponible 24/7 para resolver tus dudas</p>
             </div>
         </div>
-        <a href="https://t.me/BuildTech_bot" target="_blank" class="btn-ai-chat">
+        <a href="#" onclick="openTelegram()" class="btn-ai-chat">
             <span class="telegram-icon">✈️</span>
             <span>Chat con Asistente</span>
         </a>
     </div>
+
+    <script>
+    function openTelegram() {
+        window.location.href = "tg://resolve?domain=BuildTech_bot";
+        setTimeout(function() {
+            window.location.href = "https://t.me/BuildTech_bot";
+        }, 800);
+    }
+    </script>
     
     <!-- Dashboard según Rol -->
     {% if current_user.has_role('admin') %}
