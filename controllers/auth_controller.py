@@ -6,30 +6,6 @@ from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 
-# Control de intentos fallidos
-def get_intentos_fallidos():
-    return session.get('login_intentos', 0)
-
-def set_intentos_fallidos(intentos):
-    session['login_intentos'] = intentos
-
-def get_ultimo_intento():
-    ts = session.get('ultimo_intento')
-    return datetime.fromisoformat(ts) if ts else None
-
-def set_ultimo_intento():
-    session['ultimo_intento'] = datetime.now().isoformat()
-
-def esta_bloqueado():
-    intentos = get_intentos_fallidos()
-    if intentos < 3:
-        return False
-    ultimo = get_ultimo_intento()
-    if ultimo and (datetime.now() - ultimo) < timedelta(minutes=5):
-        return True
-    set_intentos_fallidos(0)
-    return False
-
 @auth_bp.route('/', methods=['GET', 'POST'])
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -37,24 +13,16 @@ def login():
         return redirect(url_for('auth.home'))
     
     if request.method == 'POST':
-        if esta_bloqueado():
-            flash('Demasiados intentos fallidos. Espera 5 minutos.', 'danger')
-            return render_template('auth/login.html')
-        
         username = request.form.get('username')
         password = request.form.get('password')
         
         user = User.get_by_username(username)
         
         if not user or not user.check_password(password):
-            intentos = get_intentos_fallidos() + 1
-            set_intentos_fallidos(intentos)
-            set_ultimo_intento()
             flash('Usuario o contraseña incorrectos.', 'danger')
             return redirect(url_for('auth.login'))
         
         # Login exitoso
-        session['login_intentos'] = 0
         login_user(user)
         
         if user.must_change_password:
